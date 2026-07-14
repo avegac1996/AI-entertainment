@@ -1,0 +1,73 @@
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+
+app.use(cors());
+app.use(express.json());
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', ollamaUrl: OLLAMA_URL });
+});
+
+// Listar modelos disponibles en Ollama
+app.get('/api/models', async (req, res) => {
+  try {
+    const response = await fetch(`${OLLAMA_URL}/api/tags`);
+    if (!response.ok) {
+      throw new Error(`Ollama respondió con status ${response.status}`);
+    }
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error al obtener modelos:', error.message);
+    res.status(502).json({
+      error: 'No se pudo conectar con Ollama.',
+      details: error.message
+    });
+  }
+});
+
+// Endpoint de chat
+app.post('/api/chat', async (req, res) => {
+  const { message, model = 'llama3.2' } = req.body;
+
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ error: 'El campo "message" es obligatorio y debe ser texto.' });
+  }
+
+  try {
+    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: message }],
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Ollama status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    const reply = data.message?.content || 'Sin respuesta del modelo.';
+    res.json({ reply, model });
+  } catch (error) {
+    console.error('Error en /api/chat:', error.message);
+    res.status(502).json({
+      error: 'No se pudo obtener respuesta de Ollama.',
+      details: error.message
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend corriendo en http://localhost:${PORT}`);
+  console.log(`Conectado a Ollama en ${OLLAMA_URL}`);
+});
