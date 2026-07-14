@@ -39,13 +39,22 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'El campo "message" es obligatorio y debe ser texto.' });
   }
 
+  const systemPrompt = `Eres un asistente de entretenimiento. SOLO puedes responder preguntas relacionadas con entretenimiento: cine, televisión, series, música, videojuegos, libros, deportes, celebridades, cultura pop, anime, manga, teatro, conciertos, streaming, etc.
+
+Si el usuario hace una pregunta que NO está relacionada con el entretenimiento, debes rechazarla amablemente diciendo: "Lo siento, solo puedo responder preguntas sobre entretenimiento. ¿Te gustaría saber algo sobre cine, música, series, videojuegos u otro tema de entretenimiento?"
+
+No respondas preguntas sobre política, ciencia, matemáticas, programación, finanzas, salud, cocina, historia (a menos que sea historia del entretenimiento), ni ningún otro tema que no sea entretenimiento.`;
+
   try {
     const response = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model,
-        messages: [{ role: 'user', content: message }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
         stream: false
       })
     });

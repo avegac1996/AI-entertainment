@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Entertainment Chat</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      padding: 20px;
+      text-align: center;
+      width: 100%;
+    }
+
+    header h1 {
+      font-size: 1.8rem;
+      background: linear-gradient(90deg, #e94560, #f5a623);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: #888;
+      font-size: 0.9rem;
+      margin-top: 5px;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 700px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 20px 20px;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      margin-bottom: 15px;
+      min-height: 300px;
+      max-height: 60vh;
+    }
+
+    .message {
+      margin-bottom: 15px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      text-align: right;
+    }
+
+    .message .bubble {
+      display: inline-block;
+      padding: 12px 18px;
+      border-radius: 18px;
+      max-width: 80%;
+      text-align: left;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+
+    .message.user .bubble {
+      background: linear-gradient(135deg, #e94560, #c23152);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .message.bot .bubble {
+      background: rgba(255, 255, 255, 0.1);
+      color: #eee;
+      border-bottom-left-radius: 4px;
+    }
+
+    .message.bot .bubble.error {
+      background: rgba(233, 69, 96, 0.2);
+      border: 1px solid #e94560;
+    }
+
+    .input-area {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-area input {
+      flex: 1;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 25px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #eee;
+      font-size: 1rem;
+      outline: none;
+      transition: background 0.2s;
+    }
+
+    .input-area input:focus {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .input-area input::placeholder {
+      color: #666;
+    }
+
+    .input-area button {
+      padding: 14px 24px;
+      border: none;
+      border-radius: 25px;
+      background: linear-gradient(135deg, #e94560, #f5a623);
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .input-area button:hover {
+      transform: scale(1.05);
+    }
+
+    .input-area button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .typing {
+      display: inline-flex;
+      gap: 4px;
+      padding: 12px 18px;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      background: #888;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-8px); }
+    }
+
+    .topics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 15px;
+      justify-content: center;
+    }
+
+    .topics button {
+      padding: 6px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      background: transparent;
+      color: #aaa;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .topics button:hover {
+      background: rgba(233, 69, 96, 0.2);
+      border-color: #e94560;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎬 AI Entertainment Chat</h1>
+    <p>Pregúntame sobre cine, series, música, videojuegos y más</p>
+  </header>
+
+  <div class="chat-container">
+    <div class="topics">
+      <button onclick="sendTopic('Recomiéndame una película de ciencia ficción')">🎬 Cine</button>
+      <button onclick="sendTopic('¿Qué series están de moda ahora?')">📺 Series</button>
+      <button onclick="sendTopic('Háblame sobre los Grammy 2025')">🎵 Música</button>
+      <button onclick="sendTopic('¿Qué videojuegos jugar en 2025?')">🎮 Videojuegos</button>
+      <button onclick="sendTopic('Recomiéndame un libro de fantasía')">📚 Libros</button>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="message bot">
+        <div class="bubble">¡Hola! Soy tu asistente de entretenimiento. Puedo ayudarte con cine, series, música, videojuegos, libros, deportes y más. ¿Qué te gustaría saber?</div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <input type="text" id="input" placeholder="Escribe tu pregunta sobre entretenimiento..." autocomplete="off" />
+      <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3001/api/chat';
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+
+    inputEl.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function addMessage(text, isUser, isError = false) {
+      const div = document.createElement('div');
+      div.className = `message ${isUser ? 'user' : 'bot'}`;
+      const bubble = document.createElement('div');
+      bubble.className = `bubble${isError ? ' error' : ''}`;
+      bubble.textContent = text;
+      div.appendChild(bubble);
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addTyping() {
+      const div = document.createElement('div');
+      div.className = 'message bot';
+      div.id = 'typing-indicator';
+      div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function sendTopic(text) {
+      inputEl.value = text;
+      sendMessage();
+    }
+
+    async function sendMessage() {
+      const message = inputEl.value.trim();
+      if (!message) return;
+
+      addMessage(message, true);
+      inputEl.value = '';
+      sendBtn.disabled = true;
+      addTyping();
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message })
+        });
+
+        const data = await res.json();
+
+        removeTyping();
+
+        if (!res.ok) {
+          addMessage(data.error || 'Error al conectar con el servidor', false, true);
+        } else {
+          addMessage(data.reply, false);
+        }
+      } catch (err) {
+        removeTyping();
+        addMessage('No se pudo conectar con el backend. ¿Está corriendo en localhost:3001?', false, true);
+      }
+
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  </script>
+</body>
+</html>
