@@ -1,12 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
+const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'deepseek-r1:1.5b';
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -33,7 +36,7 @@ app.get('/api/models', async (req, res) => {
 
 // Endpoint de chat
 app.post('/api/chat', async (req, res) => {
-  const { message, model = 'llama3.2' } = req.body;
+  const { message, model = DEFAULT_MODEL } = req.body;
 
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ error: 'El campo "message" es obligatorio y debe ser texto.' });
@@ -78,5 +81,7 @@ No respondas preguntas sobre política, ciencia, matemáticas, programación, fi
 
 app.listen(PORT, () => {
   console.log(`Backend corriendo en http://localhost:${PORT}`);
+  console.log(`Frontend disponible en http://localhost:${PORT}`);
   console.log(`Conectado a Ollama en ${OLLAMA_URL}`);
+  console.log(`Modelo por defecto: ${DEFAULT_MODEL}`);
 });
