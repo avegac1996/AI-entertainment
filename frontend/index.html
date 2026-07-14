@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Entertainment Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -13,12 +14,64 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
       color: #eee;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
+      background:
+        linear-gradient(180deg, rgba(10, 0, 20, 0.9) 0%, rgba(40, 0, 60, 0.85) 100%),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(rgba(255, 0, 255, 0.07) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      background-position: 0 0, 0 0, 0 0;
+      position: relative;
+      overflow-x: hidden;
+      animation: gridMove 20s linear infinite;
+    }
+
+    @keyframes gridMove {
+      0% { background-position: 0 0, 0 0, 0 0; }
+      100% { background-position: 0 0, 0 40px, 0 40px; }
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(255, 0, 255, 0.2) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(0, 255, 255, 0.2) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 0, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        radial-gradient(circle, rgba(255, 255, 255, 0.8) 1px, transparent 1px),
+        radial-gradient(circle, rgba(0, 255, 255, 0.6) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255, 0, 255, 0.6) 1px, transparent 1px);
+      background-size: 120px 120px, 200px 200px, 350px 350px;
+      background-position: 0 0, 50px 80px, 100px 150px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: -1;
+      animation: stars 40s linear infinite;
+    }
+
+    @keyframes stars {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-20px); }
     }
 
     header {
@@ -28,17 +81,22 @@
     }
 
     header h1 {
-      font-size: 1.8rem;
-      background: linear-gradient(90deg, #e94560, #f5a623);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 1.2rem;
+      color: #00ffff;
+      text-shadow:
+        0 0 5px #00ffff,
+        0 0 10px #00ffff,
+        0 0 20px #00ffff,
+        0 0 40px #ff00ff;
+      letter-spacing: 2px;
     }
 
     header p {
-      color: #888;
-      font-size: 0.9rem;
-      margin-top: 5px;
+      color: #ff9ff3;
+      font-size: 0.85rem;
+      margin-top: 10px;
+      text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
     }
 
     .chat-container {
@@ -54,11 +112,29 @@
       flex: 1;
       overflow-y: auto;
       padding: 20px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid #ff00ff;
+      border-radius: 16px;
+      box-shadow:
+        0 0 10px rgba(255, 0, 255, 0.4),
+        inset 0 0 30px rgba(255, 0, 255, 0.1);
       margin-bottom: 15px;
       min-height: 300px;
       max-height: 60vh;
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .messages::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 5px;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #00ffff, #ff00ff);
+      border-radius: 5px;
     }
 
     .message {
@@ -84,23 +160,30 @@
       line-height: 1.5;
       white-space: pre-wrap;
       word-wrap: break-word;
+      font-weight: 500;
     }
 
     .message.user .bubble {
-      background: linear-gradient(135deg, #e94560, #c23152);
-      color: #fff;
+      background: linear-gradient(135deg, #00ffff, #0088ff);
+      color: #000;
       border-bottom-right-radius: 4px;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
     }
 
     .message.bot .bubble {
-      background: rgba(255, 255, 255, 0.1);
-      color: #eee;
+      background: rgba(255, 0, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255, 0, 255, 0.5);
       border-bottom-left-radius: 4px;
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
     }
 
     .message.bot .bubble.error {
-      background: rgba(233, 69, 96, 0.2);
-      border: 1px solid #e94560;
+      background: rgba(255, 0, 80, 0.2);
+      border: 1px solid #ff0055;
+      box-shadow: 0 0 15px rgba(255, 0, 80, 0.4);
+      color: #ff99aa;
     }
 
     .input-area {
@@ -112,43 +195,51 @@
     .input-area input {
       flex: 1;
       padding: 14px 18px;
-      border: none;
+      border: 2px solid rgba(0, 255, 255, 0.5);
       border-radius: 25px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #eee;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
       font-size: 1rem;
       outline: none;
-      transition: background 0.2s;
+      transition: all 0.2s;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
     }
 
     .input-area input:focus {
-      background: rgba(255, 255, 255, 0.15);
+      border-color: #00ffff;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+      background: rgba(0, 0, 0, 0.8);
     }
 
     .input-area input::placeholder {
-      color: #666;
+      color: #00cccc;
     }
 
     .input-area button {
       padding: 14px 24px;
-      border: none;
+      border: 2px solid #ff00ff;
       border-radius: 25px;
-      background: linear-gradient(135deg, #e94560, #f5a623);
+      background: rgba(255, 0, 255, 0.2);
       color: #fff;
       font-size: 1rem;
       cursor: pointer;
-      transition: transform 0.15s, opacity 0.2s;
+      transition: all 0.15s;
       white-space: nowrap;
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
     }
 
     .input-area button:hover {
       transform: scale(1.05);
+      background: rgba(255, 0, 255, 0.4);
+      box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
     }
 
     .input-area button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
       transform: none;
+      box-shadow: none;
     }
 
     .typing {
@@ -160,8 +251,9 @@
     .typing span {
       width: 8px;
       height: 8px;
-      background: #888;
+      background: #00ffff;
       border-radius: 50%;
+      box-shadow: 0 0 10px #00ffff;
       animation: bounce 1.4s infinite;
     }
 
@@ -183,19 +275,21 @@
 
     .topics button {
       padding: 6px 14px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid #00ffff;
       border-radius: 20px;
-      background: transparent;
-      color: #aaa;
+      background: rgba(0, 255, 255, 0.1);
+      color: #00ffff;
       font-size: 0.8rem;
       cursor: pointer;
       transition: all 0.2s;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
     }
 
     .topics button:hover {
-      background: rgba(233, 69, 96, 0.2);
-      border-color: #e94560;
+      background: rgba(0, 255, 255, 0.25);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
       color: #fff;
+      transform: translateY(-2px);
     }
   </style>
 </head>
