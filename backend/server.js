@@ -5,7 +5,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
-const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'llama3.2';
+const DEFAULT_MODEL = process.env.DEFAULT_MODEL || 'llama3.2:1b';
 
 app.use(cors());
 app.use(express.json());

@@ -117,6 +117,22 @@ function speak(text) {
   speechSynthesis.speak(utterance);
 }
 
+/* ===== Saludo de inicio por voz ===== */
+const GREETING = 'Buenas. Soy JARVIS, su asistente de entretenimiento. Mi protocolo cubre películas, libros y videojuegos. Puede escribir su consulta o usar el micrófono para hablar. ¿En qué puedo asistirle?';
+let greetingDone = false;
+
+function playGreeting() {
+  if (greetingDone || !voiceEnabled) return;
+  greetingDone = true;
+  speak(GREETING);
+}
+
+// Intentar al cargar; si el navegador bloquea el autoplay,
+// se reproduce en la primera interacción del usuario
+window.addEventListener('load', () => setTimeout(playGreeting, 800));
+document.addEventListener('click', playGreeting, { once: true });
+document.addEventListener('keydown', playGreeting, { once: true });
+
 function toggleVoice() {
   voiceEnabled = !voiceEnabled;
   voiceBtn.classList.toggle('voice-off', !voiceEnabled);
@@ -132,17 +148,124 @@ function toggleVoice() {
 }
 
 // Resalta las tarjetas SVG según el tema detectado en la respuesta
+// y abre el carrusel del tema en modo narrativo
 function highlightThemes(text) {
   const lower = text.toLowerCase();
+  let detected = null;
   if (/pel[ií]cula|cine|film|actor|director|taquilla/.test(lower)) {
     document.getElementById('card-movies').classList.add('active');
-  }
-  if (/libro|novela|autor|literatura|saga|cap[ií]tulo/.test(lower)) {
+    detected = 'movies';
+  } else if (/libro|novela|autor|literatura|saga|cap[ií]tulo/.test(lower)) {
     document.getElementById('card-books').classList.add('active');
-  }
-  if (/videojuego|juego|gamer|consola|jugabilidad|nivel/.test(lower)) {
+    detected = 'books';
+  } else if (/videojuego|juego|gamer|consola|jugabilidad|nivel/.test(lower)) {
     document.getElementById('card-games').classList.add('active');
+    detected = 'games';
   }
+  if (detected && voiceEnabled && currentTheme === null) {
+    openTheme(detected, false);
+  }
+}
+
+/* ===== Carrusel por tema ===== */
+const THEMES = {
+  movies: { title: 'Módulo: Películas', query: 'Recomiéndame 3 películas de ciencia ficción' },
+  books: { title: 'Módulo: Libros', query: 'Recomiéndame 3 libros de fantasía' },
+  games: { title: 'Módulo: Videojuegos', query: 'Recomiéndame 3 videojuegos de mundo abierto' }
+};
+
+const DEFAULT_VM_TITLE = 'Módulos de entretenimiento — Seleccione o hable su consulta';
+
+let currentTheme = null;
+let slideIndex = 0;
+let slideCount = 0;
+let carouselTimer = null;
+
+function openTheme(theme, withQuery = true) {
+  const store = document.getElementById('slides-' + theme);
+  if (!store) return;
+
+  currentTheme = theme;
+  slideIndex = 0;
+
+  const stage = document.getElementById('carouselSlide');
+  stage.innerHTML = '';
+
+  const svgs = store.querySelectorAll('svg');
+  slideCount = svgs.length;
+
+  svgs.forEach((svg, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'slide-item' + (i === 0 ? ' current' : '');
+    wrap.appendChild(svg.cloneNode(true));
+    const lbl = document.createElement('span');
+    lbl.textContent = svg.dataset.label || '';
+    wrap.appendChild(lbl);
+    stage.appendChild(wrap);
+  });
+
+  buildDots();
+
+  const visual = document.getElementById('visualMode');
+  visual.classList.remove('theme-open');
+  void visual.offsetWidth; // reinicia la animación de zoom
+  visual.classList.add('theme-open');
+  document.getElementById('vmTitle').textContent = THEMES[theme].title;
+
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('card-' + theme).classList.add('active');
+
+  startAutoRotate();
+
+  if (withQuery) sendTopic(THEMES[theme].query);
+}
+
+function closeTheme() {
+  currentTheme = null;
+  stopAutoRotate();
+  document.getElementById('visualMode').classList.remove('theme-open');
+  document.getElementById('vmTitle').textContent = DEFAULT_VM_TITLE;
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+}
+
+function buildDots() {
+  const dotsEl = document.getElementById('carouselDots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < slideCount; i++) {
+    const dot = document.createElement('button');
+    if (i === 0) dot.classList.add('on');
+    dot.addEventListener('click', () => goToSlide(i));
+    dotsEl.appendChild(dot);
+  }
+}
+
+function goToSlide(index) {
+  const items = document.querySelectorAll('#carouselSlide .slide-item');
+  const dots = document.querySelectorAll('#carouselDots button');
+  if (!items.length) return;
+  slideIndex = (index + slideCount) % slideCount;
+  items.forEach((el, i) => el.classList.toggle('current', i === slideIndex));
+  dots.forEach((el, i) => el.classList.toggle('on', i === slideIndex));
+  restartAutoRotate();
+}
+
+function nextSlide() { goToSlide(slideIndex + 1); }
+function prevSlide() { goToSlide(slideIndex - 1); }
+
+function startAutoRotate() {
+  stopAutoRotate();
+  carouselTimer = setInterval(nextSlide, 3500);
+}
+
+function stopAutoRotate() {
+  if (carouselTimer) {
+    clearInterval(carouselTimer);
+    carouselTimer = null;
+  }
+}
+
+function restartAutoRotate() {
+  if (currentTheme !== null) startAutoRotate();
 }
 
 // Marca visualmente una respuesta fuera de jurisdicción

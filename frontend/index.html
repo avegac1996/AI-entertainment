@@ -48,9 +48,10 @@
     </div>
 
     <div class="visual-mode" id="visualMode">
-      <div class="vm-title">Módulos de entretenimiento — Seleccione o hable su consulta</div>
-      <div class="vm-cards">
-        <div class="theme-card" id="card-movies" onclick="sendTopic('Recomiéndame 3 películas de ciencia ficción')">
+      <div class="vm-title" id="vmTitle">Módulos de entretenimiento — Seleccione o hable su consulta</div>
+
+      <div class="vm-cards" id="vmCards">
+        <div class="theme-card" id="card-movies" onclick="openTheme('movies')">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <rect x="8" y="24" width="48" height="32" rx="4"/>
             <path d="M8 32h48"/>
@@ -59,7 +60,7 @@
           </svg>
           <span>Películas</span>
         </div>
-        <div class="theme-card" id="card-books" onclick="sendTopic('Recomiéndame 3 libros de fantasía')">
+        <div class="theme-card" id="card-books" onclick="openTheme('books')">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M32 18c-6-4.5-14-5-22-3v34c8-2 16-1.5 22 3 6-4.5 14-5 22-3V15c-8-2-16-1.5-22 3z"/>
             <path d="M32 18v34"/>
@@ -68,7 +69,7 @@
           </svg>
           <span>Libros</span>
         </div>
-        <div class="theme-card" id="card-games" onclick="sendTopic('Recomiéndame 3 videojuegos de mundo abierto')">
+        <div class="theme-card" id="card-games" onclick="openTheme('games')">
           <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M14 22h36a13 13 0 0 1 12.5 15c-1 6.5-3 11.5-8 11.5-4 0-6.5-3.5-9.5-6.5H19c-3 3-5.5 6.5-9.5 6.5-5 0-7-5-8-11.5A13 13 0 0 1 14 22z"/>
             <path d="M16 31v10 M11 36h10"/>
@@ -78,7 +79,101 @@
           <span>Videojuegos</span>
         </div>
       </div>
+
+      <div class="carousel-view" id="carouselView">
+        <div class="carousel-stage">
+          <button class="carousel-arrow" onclick="prevSlide()" aria-label="Anterior">‹</button>
+          <div class="carousel-slide" id="carouselSlide"></div>
+          <button class="carousel-arrow" onclick="nextSlide()" aria-label="Siguiente">›</button>
+        </div>
+        <div class="carousel-dots" id="carouselDots"></div>
+        <button class="carousel-back" onclick="closeTheme()">‹ Volver a módulos</button>
+      </div>
+
       <div class="vm-status" id="vmStatus">Modo voz activo — La respuesta será narrada, el texto está oculto</div>
+    </div>
+
+    <!-- Almacén de SVGs por tema (universales, stroke-based) -->
+    <div class="svg-store" id="slides-movies">
+      <svg data-label="Claqueta" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="8" y="24" width="48" height="32" rx="4"/>
+        <path d="M8 32h48"/>
+        <path d="M16 32l5-8 M26 32l5-8 M36 32l5-8 M46 32l5-8"/>
+        <path d="M27 42l12 7-12 7z" fill="currentColor" stroke="none"/>
+      </svg>
+      <svg data-label="Carrete" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="30" cy="30" r="20"/>
+        <circle cx="30" cy="30" r="4"/>
+        <circle cx="30" cy="18" r="3.5"/>
+        <circle cx="30" cy="42" r="3.5"/>
+        <circle cx="18" cy="30" r="3.5"/>
+        <circle cx="42" cy="30" r="3.5"/>
+        <rect x="36" y="48" width="20" height="8" rx="2"/>
+        <path d="M43 48v8 M50 48v8"/>
+      </svg>
+      <svg data-label="Boleto" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="10" y="20" width="44" height="24" rx="4"/>
+        <path d="M32 20v24" stroke-dasharray="3 4"/>
+        <path d="M16 28h9 M16 36h9 M39 28h9 M39 36h9"/>
+      </svg>
+      <svg data-label="Palomitas" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 26h28l-4 28H22z"/>
+        <path d="M26 26l1.5 28 M32 26v28 M38 26l-1.5 28"/>
+        <path d="M18 26a5 5 0 0 1 4-7.5 5.5 5.5 0 0 1 10-3.5 5.5 5.5 0 0 1 10 3.5 5 5 0 0 1 4 7.5"/>
+      </svg>
+    </div>
+
+    <div class="svg-store" id="slides-books">
+      <svg data-label="Libro abierto" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M32 18c-6-4.5-14-5-22-3v34c8-2 16-1.5 22 3 6-4.5 14-5 22-3V15c-8-2-16-1.5-22 3z"/>
+        <path d="M32 18v34"/>
+        <path d="M14 24c5-1 10-1 14 .5 M14 32c5-1 10-1 14 .5"/>
+        <path d="M36 24.5c4-1.5 9-1.5 14-.5 M36 32.5c4-1.5 9-1.5 14-.5"/>
+      </svg>
+      <svg data-label="Colección" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="14" y="14" width="34" height="9" rx="2"/>
+        <rect x="18" y="27" width="34" height="9" rx="2"/>
+        <rect x="12" y="40" width="34" height="9" rx="2"/>
+        <path d="M21 18.5h16 M25 31.5h16 M19 44.5h16"/>
+      </svg>
+      <svg data-label="Marcador" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="18" y="12" width="28" height="40" rx="3"/>
+        <path d="M18 22h28"/>
+        <path d="M28 12v16l5-5 5 5V12"/>
+      </svg>
+      <svg data-label="Lectura" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="21" cy="34" r="9"/>
+        <circle cx="43" cy="34" r="9"/>
+        <path d="M30 33.5h4"/>
+        <path d="M12 32l-6-7 M52 32l6-7"/>
+      </svg>
+    </div>
+
+    <div class="svg-store" id="slides-games">
+      <svg data-label="Mando" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 22h36a13 13 0 0 1 12.5 15c-1 6.5-3 11.5-8 11.5-4 0-6.5-3.5-9.5-6.5H19c-3 3-5.5 6.5-9.5 6.5-5 0-7-5-8-11.5A13 13 0 0 1 14 22z"/>
+        <path d="M16 31v10 M11 36h10"/>
+        <circle cx="42" cy="31" r="1.6" fill="currentColor" stroke="none"/>
+        <circle cx="49" cy="37" r="1.6" fill="currentColor" stroke="none"/>
+      </svg>
+      <svg data-label="Joystick" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="32" cy="17" r="6"/>
+        <path d="M32 23v15"/>
+        <path d="M18 38h28l5 14H13z"/>
+        <circle cx="25" cy="45" r="1.8" fill="currentColor" stroke="none"/>
+        <circle cx="39" cy="45" r="1.8" fill="currentColor" stroke="none"/>
+      </svg>
+      <svg data-label="Trofeo" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12h20v11a10 10 0 0 1-20 0z"/>
+        <path d="M22 15h-7a7 7 0 0 0 7 9 M42 15h7a7 7 0 0 1-7 9"/>
+        <path d="M32 33v7"/>
+        <path d="M26 40h12v6H26z M22 50h20"/>
+      </svg>
+      <svg data-label="Fantasma" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 52V28a14 14 0 0 1 28 0v24l-4.7-4.8-4.8 4.8-4.5-4.8-4.5 4.8-4.8-4.8z"/>
+        <circle cx="26" cy="28" r="2.5" fill="currentColor" stroke="none"/>
+        <circle cx="38" cy="28" r="2.5" fill="currentColor" stroke="none"/>
+      </svg>
     </div>
 
     <div class="input-area">
