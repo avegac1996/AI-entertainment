@@ -20,6 +20,18 @@ const REJECTION_PATTERN = /fuera de mi jurisdicci[oó]n/i;
 let voiceEnabled = true;
 let listening = false;
 
+/* ===== Toggle de tema (dark/light) ===== */
+function toggleTheme() {
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  localStorage.setItem('jarvis-theme', isLight ? 'light' : 'dark');
+}
+
+(function loadTheme() {
+  const saved = localStorage.getItem('jarvis-theme');
+  if (saved === 'light') document.body.classList.add('light-mode');
+})();
+
 inputEl.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') sendMessage();
 });
@@ -118,7 +130,7 @@ function speak(text) {
 }
 
 /* ===== Saludo de inicio por voz ===== */
-const GREETING = 'Buenas. Soy JARVIS, una IA desarrollada en la Gloriosísima Universidad Politécnica Salesiana, su asistente de entretenimiento. Mi protocolo cubre películas, libros y videojuegos. Puede escribir su consulta o usar el micrófono para hablar. ¿En qué puedo asistirle?';
+const GREETING = 'Hola. Soy JARVIS, una IA desarrollada en la Gloriosísima Universidad Politécnica Salesiana, su asistente de entretenimiento. Mi protocolo cubre películas, libros y videojuegos. Puede escribir su consulta o usar el micrófono para hablar. ¿En qué puedo asistirle?';
 let greetingDone = false;
 
 function playGreeting() {
@@ -453,11 +465,26 @@ async function sendMessage() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  let W, H, nodes = [], pulses = [];
-  const NODE_COUNT = 55;
-  const MAX_DIST = 160;
-  const PULSE_SPEED = 2.2;
+  let W, H, nodes = [], pulses = [], ripples = [];
+  const NODE_COUNT = 70;
+  const MAX_DIST = 170;
+  const PULSE_SPEED = 2.4;
   let thinking = false;
+  let thinkingLevel = 0;        // 0..1 con transición suave
+  let frame = 0;
+
+  // Leer variables CSS de color para el canvas
+  let neuralRGB = [0, 212, 255];
+  let neuralBrightRGB = [120, 230, 255];
+  let neuralNodeRGB = [100, 220, 255];
+
+  function readThemeColors() {
+    const cs = getComputedStyle(document.body);
+    neuralRGB = (cs.getPropertyValue('--neural-rgb').trim() || '0, 212, 255').split(',').map(Number);
+    neuralBrightRGB = (cs.getPropertyValue('--neural-bright-rgb').trim() || '120, 230, 255').split(',').map(Number);
+    neuralNodeRGB = (cs.getPropertyValue('--neural-node-rgb').trim() || '100, 220, 255').split(',').map(Number);
+  }
+  readThemeColors();
 
   function resize() {
     W = canvas.width = window.innerWidth;
@@ -473,57 +500,142 @@ async function sendMessage() {
         vx: (Math.random() - 0.5) * 0.35,
         vy: (Math.random() - 0.5) * 0.35,
         r: Math.random() * 1.8 + 0.8,
-        pulse: Math.random() * Math.PI * 2
+        pulse: Math.random() * Math.PI * 2,
+        activation: 0
       });
     }
   }
 
-  function spawnPulse(from, to) {
-    pulses.push({ from, to, t: 0, speed: PULSE_SPEED / Math.hypot(to.x - from.x, to.y - from.y) });
+  function spawnPulse(from, to, chain) {
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    if (dist < 1) return;
+    pulses.push({
+      from, to, t: 0,
+      speed: PULSE_SPEED / dist,
+      chain: chain || 0,
+      hue: 190 + Math.random() * 30
+    });
+  }
+
+  function spawnRipple() {
+    ripples.push({
+      x: W / 2, y: H / 2,
+      r: 0, maxR: Math.hypot(W, H) * 0.55,
+      alpha: 0.5
+    });
+  }
+
+  function getNeighbors(node) {
+    const result = [];
+    for (const n of nodes) {
+      if (n === node) continue;
+      const d = Math.hypot(n.x - node.x, n.y - node.y);
+      if (d < MAX_DIST) result.push(n);
+    }
+    return result;
   }
 
   function update() {
+    // Transición suave de thinkingLevel
+    const target = thinking ? 1 : 0;
+    thinkingLevel += (target - thinkingLevel) * 0.06;
+    if (Math.abs(target - thinkingLevel) < 0.01) thinkingLevel = target;
+
+    const speedMul = 1 + thinkingLevel * 1.8;
+
     for (const n of nodes) {
-      n.x += n.vx;
-      n.y += n.vy;
-      n.pulse += 0.03;
+      n.x += n.vx * speedMul;
+      n.y += n.vy * speedMul;
+      n.pulse += 0.025 + thinkingLevel * 0.04;
+      n.activation *= 0.92;
       if (n.x < 0 || n.x > W) n.vx *= -1;
       if (n.y < 0 || n.y > H) n.vy *= -1;
     }
 
     // Pulses
     for (let i = pulses.length - 1; i >= 0; i--) {
-      pulses[i].t += pulses[i].speed * (thinking ? 2.5 : 1);
-      if (pulses[i].t >= 1) pulses.splice(i, 1);
+      const p = pulses[i];
+      p.t += p.speed * speedMul;
+      if (p.t >= 1) {
+        // Llegada: activar nodo destino y rebotar a un vecino
+        p.to.activation = 1;
+        if (p.chain < 3 && thinkingLevel > 0.3) {
+          const neighbors = getNeighbors(p.to);
+          if (neighbors.length > 0) {
+            const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+            spawnPulse(p.to, next, p.chain + 1);
+          }
+        }
+        pulses.splice(i, 1);
+      }
+    }
+
+    // Ripples (ondas expansivas)
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      ripples[i].r += 4 + thinkingLevel * 6;
+      ripples[i].alpha *= 0.97;
+      if (ripples[i].r > ripples[i].maxR || ripples[i].alpha < 0.01) {
+        ripples.splice(i, 1);
+      }
     }
 
     // Spawn pulses aleatorios
-    if (Math.random() < (thinking ? 0.25 : 0.06) && nodes.length > 2) {
+    const spawnRate = 0.04 + thinkingLevel * 0.35;
+    if (Math.random() < spawnRate && nodes.length > 2) {
       const a = nodes[Math.floor(Math.random() * nodes.length)];
-      for (const b of nodes) {
-        if (a === b) continue;
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (d < MAX_DIST) {
-          spawnPulse(a, b);
-          break;
-        }
+      const neighbors = getNeighbors(a);
+      if (neighbors.length > 0) {
+        const b = neighbors[Math.floor(Math.random() * neighbors.length)];
+        spawnPulse(a, b, 0);
       }
     }
+
+    // Spawn ripple al iniciar thinking
+    if (thinking && frame % 90 === 0) spawnRipple();
+
+    frame++;
   }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
 
+    // Aura radial de fondo cuando thinking
+    if (thinkingLevel > 0.05) {
+      const cx = W / 2, cy = H / 2;
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(W, H) * 0.4);
+      grad.addColorStop(0, `rgba(${neuralRGB[0]}, ${neuralRGB[1]}, ${neuralRGB[2]}, ${0.06 * thinkingLevel})`);
+      grad.addColorStop(0.5, `rgba(${neuralRGB[0]}, ${neuralRGB[1] * 0.7}, ${neuralRGB[2] * 0.8}, ${0.03 * thinkingLevel})`);
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // Ripples
+    for (const rp of ripples) {
+      ctx.strokeStyle = `rgba(${neuralBrightRGB[0]}, ${neuralBrightRGB[1]}, ${neuralBrightRGB[2]}, ${rp.alpha * thinkingLevel})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
     // Conexiones
+    const maxD = MAX_DIST + thinkingLevel * 40;
     for (let i = 0; i < nodes.length; i++) {
       for (let j = i + 1; j < nodes.length; j++) {
         const dx = nodes[i].x - nodes[j].x;
         const dy = nodes[i].y - nodes[j].y;
         const dist = Math.hypot(dx, dy);
-        if (dist < MAX_DIST) {
-          const alpha = (1 - dist / MAX_DIST) * (thinking ? 0.28 : 0.14);
-          ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
-          ctx.lineWidth = 0.6;
+        if (dist < maxD) {
+          const proximity = 1 - dist / maxD;
+          const alpha = proximity * lerp(0.10, 0.38, thinkingLevel);
+          const r = lerp(neuralRGB[0], neuralBrightRGB[0], thinkingLevel);
+          const g = lerp(neuralRGB[1], neuralBrightRGB[1], thinkingLevel);
+          const b = lerp(neuralRGB[2], neuralBrightRGB[2], thinkingLevel);
+          ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.lineWidth = lerp(0.5, 1.2, thinkingLevel * proximity);
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(nodes[j].x, nodes[j].y);
@@ -532,27 +644,58 @@ async function sendMessage() {
       }
     }
 
-    // Pulses (paquetes de datos viajando por las conexiones)
+    // Pulses con estela
     for (const p of pulses) {
       const x = p.from.x + (p.to.x - p.from.x) * p.t;
       const y = p.from.y + (p.to.y - p.from.y) * p.t;
-      const glow = thinking ? 6 : 4;
-      ctx.fillStyle = thinking ? 'rgba(120, 230, 255, 0.9)' : 'rgba(0, 212, 255, 0.7)';
-      ctx.shadowBlur = glow;
-      ctx.shadowColor = 'rgba(0, 212, 255, 0.8)';
+      const trailLen = 0.12;
+      const tx = p.from.x + (p.to.x - p.from.x) * Math.max(0, p.t - trailLen);
+      const ty = p.from.y + (p.to.y - p.from.y) * Math.max(0, p.t - trailLen);
+
+      // Estela
+      const trailGrad = ctx.createLinearGradient(tx, ty, x, y);
+      const baseAlpha = lerp(0.4, 0.85, thinkingLevel);
+      trailGrad.addColorStop(0, `rgba(${neuralBrightRGB[0]}, ${neuralBrightRGB[1]}, ${neuralBrightRGB[2]}, 0)`);
+      trailGrad.addColorStop(1, `rgba(${neuralBrightRGB[0]}, ${neuralBrightRGB[1]}, ${neuralBrightRGB[2]}, ${baseAlpha})`);
+      ctx.strokeStyle = trailGrad;
+      ctx.lineWidth = lerp(1.2, 2.5, thinkingLevel);
       ctx.beginPath();
-      ctx.arc(x, y, thinking ? 2.2 : 1.6, 0, Math.PI * 2);
+      ctx.moveTo(tx, ty);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      // Cabeza del pulso
+      const headR = lerp(1.4, 2.8, thinkingLevel) + p.chain * 0.3;
+      ctx.shadowBlur = lerp(5, 14, thinkingLevel);
+      ctx.shadowColor = `rgba(${neuralBrightRGB[0]}, ${neuralBrightRGB[1]}, ${neuralBrightRGB[2]}, 0.9)`;
+      ctx.fillStyle = `rgba(${neuralBrightRGB[0]}, ${neuralBrightRGB[1]}, ${neuralBrightRGB[2]}, ${lerp(0.7, 0.95, thinkingLevel)})`;
+      ctx.beginPath();
+      ctx.arc(x, y, headR, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
     }
 
     // Nodos
     for (const n of nodes) {
-      const breath = Math.sin(n.pulse) * 0.4 + 0.6;
-      const radius = n.r * (thinking ? 1.4 : 1) * breath;
-      ctx.fillStyle = thinking ? 'rgba(100, 220, 255, 0.85)' : 'rgba(0, 212, 255, 0.55)';
-      ctx.shadowBlur = thinking ? 8 : 5;
-      ctx.shadowColor = 'rgba(0, 212, 255, 0.6)';
+      const breath = Math.sin(n.pulse) * 0.35 + 0.65;
+      const actBoost = n.activation * 2.5;
+      const radius = n.r * lerp(1, 1.8, thinkingLevel) * breath + actBoost;
+      const r = lerp(neuralNodeRGB[0], neuralBrightRGB[0], thinkingLevel + n.activation * 0.5);
+      const g = lerp(neuralNodeRGB[1], neuralBrightRGB[1], thinkingLevel + n.activation * 0.5);
+      const b = lerp(neuralNodeRGB[2], neuralBrightRGB[2], thinkingLevel + n.activation * 0.5);
+      const alpha = lerp(0.50, 0.90, thinkingLevel) + n.activation * 0.3;
+
+      // Halo en nodos activados
+      if (n.activation > 0.1) {
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${n.activation * 0.15})`;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, radius * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.shadowBlur = lerp(5, 12, thinkingLevel) + n.activation * 8;
+      ctx.shadowColor = `rgba(${neuralBrightRGB[0]}, ${neuralBrightRGB[1]}, ${neuralBrightRGB[2]}, 0.7)`;
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
       ctx.beginPath();
       ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
       ctx.fill();
@@ -568,9 +711,17 @@ async function sendMessage() {
 
   // Observar el estado del reactor para reaccionar
   const observer = new MutationObserver(() => {
+    const wasThinking = thinking;
     thinking = reactor.classList.contains('thinking');
+    if (thinking && !wasThinking) spawnRipple();
   });
   observer.observe(reactor, { attributes: true, attributeFilter: ['class'] });
+
+  // Re-leer colores cuando cambia el tema
+  const themeObserver = new MutationObserver(() => {
+    setTimeout(readThemeColors, 50);
+  });
+  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   window.addEventListener('resize', () => { resize(); initNodes(); });
   resize();
