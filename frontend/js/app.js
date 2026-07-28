@@ -118,7 +118,7 @@ function speak(text) {
 }
 
 /* ===== Saludo de inicio por voz ===== */
-const GREETING = 'Buenas. Soy JARVIS, su asistente de entretenimiento. Mi protocolo cubre películas, libros y videojuegos. Puede escribir su consulta o usar el micrófono para hablar. ¿En qué puedo asistirle?';
+const GREETING = 'Buenas. Soy JARVIS, una IA desarrollada en la Gloriosísima Universidad Politécnica Salesiana, su asistente de entretenimiento. Mi protocolo cubre películas, libros y videojuegos. Puede escribir su consulta o usar el micrófono para hablar. ¿En qué puedo asistirle?';
 let greetingDone = false;
 
 function playGreeting() {
