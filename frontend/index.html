@@ -408,6 +408,153 @@
       text-decoration: line-through;
     }
 
+    /* ===== Logo institucional ===== */
+    .logo-wrap {
+      position: fixed;
+      top: 18px;
+      left: 88px;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      border: 1px solid var(--cyan-dim);
+      padding: 6px 14px 6px 8px;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+      box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+    }
+
+    .logo-wrap img {
+      height: 52px;
+      display: block;
+      filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.35));
+    }
+
+    .logo-wrap .logo-tag {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.5rem;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    /* ===== Modo narrativo visual ===== */
+    .visual-mode {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      padding: 30px 22px;
+      background: var(--panel);
+      border: 1px solid var(--cyan-dim);
+      clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+      box-shadow: 0 0 25px rgba(0, 212, 255, 0.12), inset 0 0 60px rgba(0, 212, 255, 0.04);
+      margin-bottom: 14px;
+      min-height: 320px;
+      max-height: 55vh;
+    }
+
+    body.voice-mode .messages { display: none; }
+    body.voice-mode .visual-mode { display: flex; }
+
+    .vm-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      opacity: 0.85;
+      text-align: center;
+    }
+
+    .vm-cards {
+      display: flex;
+      gap: 28px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .theme-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 28px 34px;
+      background: rgba(0, 30, 55, 0.5);
+      border: 1px solid var(--cyan-dim);
+      clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      animation: floatCard 4s ease-in-out infinite;
+    }
+
+    .theme-card:nth-child(2) { animation-delay: 0.6s; }
+    .theme-card:nth-child(3) { animation-delay: 1.2s; }
+
+    @keyframes floatCard {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .theme-card svg {
+      width: 84px;
+      height: 84px;
+      color: var(--cyan);
+      filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.45));
+      transition: all 0.25s ease;
+    }
+
+    .theme-card span {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.65rem;
+      letter-spacing: 2.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+
+    .theme-card:hover {
+      background: rgba(0, 60, 100, 0.6);
+      border-color: var(--cyan);
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.35);
+      transform: translateY(-6px) scale(1.04);
+      animation-play-state: paused;
+    }
+
+    .theme-card:hover svg {
+      color: #fff;
+      filter: drop-shadow(0 0 14px var(--cyan));
+      transform: scale(1.1);
+    }
+
+    .theme-card.active {
+      border-color: var(--cyan);
+      background: rgba(0, 80, 130, 0.55);
+      box-shadow: 0 0 35px rgba(0, 212, 255, 0.55), inset 0 0 25px rgba(0, 212, 255, 0.15);
+      animation: activePulse 1.2s ease-in-out infinite;
+    }
+
+    .theme-card.active svg {
+      color: #fff;
+      filter: drop-shadow(0 0 18px var(--cyan));
+    }
+
+    @keyframes activePulse {
+      0%, 100% { box-shadow: 0 0 25px rgba(0, 212, 255, 0.4), inset 0 0 20px rgba(0, 212, 255, 0.1); }
+      50% { box-shadow: 0 0 45px rgba(0, 212, 255, 0.75), inset 0 0 35px rgba(0, 212, 255, 0.25); }
+    }
+
+    .vm-status {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.55rem;
+      letter-spacing: 2px;
+      color: rgba(0, 212, 255, 0.55);
+      text-transform: uppercase;
+      text-align: center;
+    }
+
     .footer-bar {
       display: flex;
       justify-content: space-between;
@@ -450,6 +597,11 @@
   <div class="hud-corner bl"></div>
   <div class="hud-corner br"></div>
 
+  <div class="logo-wrap">
+    <img src="/img/logo_ups.png" alt="Logo UPS" />
+    <span class="logo-tag">UPS // AI Lab</span>
+  </div>
+
   <header>
     <div class="arc-reactor" id="reactor">
       <div class="ring ring1"></div>
@@ -475,6 +627,40 @@
         <span class="label">JARVIS</span>
         <div class="bubble">Buenas. Soy JARVIS, su asistente de entretenimiento. Mi protocolo cubre películas, libros y videojuegos. Puede escribir su consulta o usar el micrófono para hablar. ¿En qué puedo asistirle?</div>
       </div>
+    </div>
+
+    <div class="visual-mode" id="visualMode">
+      <div class="vm-title">Módulos de entretenimiento — Seleccione o hable su consulta</div>
+      <div class="vm-cards">
+        <div class="theme-card" id="card-movies" onclick="sendTopic('Recomiéndame 3 películas de ciencia ficción')">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="24" width="48" height="32" rx="4"/>
+            <path d="M8 32h48"/>
+            <path d="M16 32l5-8 M26 32l5-8 M36 32l5-8 M46 32l5-8"/>
+            <path d="M27 42l12 7-12 7z" fill="currentColor" stroke="none"/>
+          </svg>
+          <span>Películas</span>
+        </div>
+        <div class="theme-card" id="card-books" onclick="sendTopic('Recomiéndame 3 libros de fantasía')">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M32 18c-6-4.5-14-5-22-3v34c8-2 16-1.5 22 3 6-4.5 14-5 22-3V15c-8-2-16-1.5-22 3z"/>
+            <path d="M32 18v34"/>
+            <path d="M14 24c5-1 10-1 14 .5 M14 32c5-1 10-1 14 .5 M14 40c5-1 10-1 14 .5"/>
+            <path d="M36 24.5c4-1.5 9-1.5 14-.5 M36 32.5c4-1.5 9-1.5 14-.5 M36 40.5c4-1.5 9-1.5 14-.5"/>
+          </svg>
+          <span>Libros</span>
+        </div>
+        <div class="theme-card" id="card-games" onclick="sendTopic('Recomiéndame 3 videojuegos de mundo abierto')">
+          <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 22h36a13 13 0 0 1 12.5 15c-1 6.5-3 11.5-8 11.5-4 0-6.5-3.5-9.5-6.5H19c-3 3-5.5 6.5-9.5 6.5-5 0-7-5-8-11.5A13 13 0 0 1 14 22z"/>
+            <path d="M16 31v10 M11 36h10"/>
+            <circle cx="42" cy="31" r="1.6" fill="currentColor" stroke="none"/>
+            <circle cx="49" cy="37" r="1.6" fill="currentColor" stroke="none"/>
+          </svg>
+          <span>Videojuegos</span>
+        </div>
+      </div>
+      <div class="vm-status" id="vmStatus">Modo voz activo — La respuesta será narrada, el texto está oculto</div>
     </div>
 
     <div class="input-area">
@@ -585,6 +771,9 @@
       voiceBtn.style.display = 'none';
     }
 
+    // Estado inicial del modo según disponibilidad de voz
+    document.body.classList.toggle('voice-mode', voiceEnabled);
+
     function speak(text) {
       if (!voiceEnabled || !text.trim()) return;
       const utterance = new SpeechSynthesisUtterance(text);
@@ -600,11 +789,27 @@
     function toggleVoice() {
       voiceEnabled = !voiceEnabled;
       voiceBtn.classList.toggle('voice-off', !voiceEnabled);
+      document.body.classList.toggle('voice-mode', voiceEnabled);
       if (!voiceEnabled) {
         speechSynthesis.cancel();
         voiceBars.classList.remove('active');
+        document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
       }
-      setStatus(voiceEnabled ? 'Módulo de voz activado' : 'Módulo de voz desactivado');
+      setStatus(voiceEnabled ? 'Modo narrativo activo — texto oculto' : 'Modo textual activo — voz desactivada');
+    }
+
+    // Resalta las tarjetas SVG según el tema detectado en la respuesta
+    function highlightThemes(text) {
+      const lower = text.toLowerCase();
+      if (/pel[ií]cula|cine|film|actor|director|taquilla/.test(lower)) {
+        document.getElementById('card-movies').classList.add('active');
+      }
+      if (/libro|novela|autor|literatura|saga|cap[ií]tulo/.test(lower)) {
+        document.getElementById('card-books').classList.add('active');
+      }
+      if (/videojuego|juego|gamer|consola|jugabilidad|nivel/.test(lower)) {
+        document.getElementById('card-games').classList.add('active');
+      }
     }
 
     // ===== Reconocimiento de voz (STT) =====
@@ -673,6 +878,7 @@
       addTyping();
       setReactorState('thinking');
       setStatus('Procesando consulta...');
+      document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
 
       try {
         const res = await fetch(API_URL, {
@@ -724,6 +930,7 @@
                   const cleaned = cleanText(rawText);
                   bubble.textContent = cleaned;
                   messagesEl.scrollTop = messagesEl.scrollHeight;
+                  highlightThemes(cleaned);
 
                   // Hablar oraciones completas que aún no se narraron
                   const pending = cleaned.slice(spokenUpTo);
