@@ -35,6 +35,13 @@ body {
 }
 
 /* ===== Fondo HUD ===== */
+#neuralCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 body::before {
   content: '';
   position: fixed;

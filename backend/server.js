@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { getUPSContext, scrapeUPS } = require('./scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,11 +43,36 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'El campo "message" es obligatorio y debe ser texto.' });
   }
 
-  const systemPrompt = `Eres JARVIS, un asistente de entretenimiento futurista. SOLO puedes responder preguntas sobre tres categorías: PELÍCULAS, LIBROS y VIDEOJUEGOS.
+  const isUPSQuery = /\bups\b|universidad|polit[eé]cnica|salesiana|salesiano|campus|facultad|admisi[oó]n|inscripci[oó]n/i.test(message);
 
-Si el usuario pregunta sobre cualquier otro tema (música, series, deportes, política, ciencia, matemáticas, programación, finanzas, salud, cocina, etc.), debes rechazarla respondiendo exactamente: "Esa consulta está fuera de mi jurisdicción. Mi protocolo de entretenimiento cubre únicamente películas, libros y videojuegos. ¿Desea consultar sobre alguno de estos temas?"
+  // Clasificador determinista: rechaza temas claramente fuera de jurisdicción
+  const OFF_TOPIC = /f[úu]tbol|deporte|partido|pol[íi]tica|elecci[oó]n|receta|cocina|clima|meteorol|matem[aá]tic|programaci[oó]n|c[oó]digo|finanza|bolsa|inversi[oó]n|salud|medicina|m[úu]sica|canci[oó]n|\bserie|religi[oó]n|cripto|acciones/i;
+  const IN_TOPIC = /pel[íi]cula|cine|film|libro|novela|videojuego|juego|gamer|consola|autor|actor|director|entretenimiento|\bups\b|universidad|polit[eé]cnica|salesiana|campus|facultad|carrera/i;
 
-Responde siempre de forma concisa y con un tono sofisticado, como un mayordomo digital. Máximo 3 recomendaciones por respuesta.
+  if (OFF_TOPIC.test(message) && !IN_TOPIC.test(message)) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+    const rejection = 'Esa consulta está fuera de mi jurisdicción. Mi protocolo cubre películas, libros, videojuegos e información de la Universidad Politécnica Salesiana. ¿Desea consultar sobre alguno de estos temas?';
+    res.write(`data: ${JSON.stringify({ content: rejection })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    return res.end();
+  }
+
+  let upsContext = '';
+  if (isUPSQuery) {
+    const scraped = await getUPSContext();
+    if (scraped) {
+      upsContext = `\n\nInformación actualizada extraída del sitio web oficial ups.edu.ec. Úsala como fuente principal para responder sobre la universidad:\n${scraped}`;
+    }
+  }
+
+  const systemPrompt = `Eres JARVIS, una IA desarrollada en la Universidad Politécnica Salesiana (UPS). Puedes responder preguntas sobre cuatro categorías: PELÍCULAS, LIBROS, VIDEOJUEGOS y la UNIVERSIDAD POLITÉCNICA SALESIANA (sus carreras, campus, noticias, eventos e información institucional).
+
+Si el usuario pregunta sobre cualquier otro tema (música, series, deportes, política, ciencia, matemáticas, programación, finanzas, salud, cocina, etc.), debes rechazarla respondiendo exactamente: "Esa consulta está fuera de mi jurisdicción. Mi protocolo cubre películas, libros, videojuegos e información de la Universidad Politécnica Salesiana. ¿Desea consultar sobre alguno de estos temas?"
+
+Responde siempre de forma concisa y con un tono sofisticado, como un mayordomo digital. Máximo 3 recomendaciones por respuesta. Si la pregunta es sobre la UPS, basa tu respuesta en la información actualizada proporcionada; si el dato no está en esa información, dilo con honestidad.${upsContext}
 
 MUY IMPORTANTE: tus respuestas serán narradas por voz. Responde ÚNICAMENTE en texto plano. NO uses formato markdown: nada de asteriscos, ni negritas, ni comillas, ni guiones bajos, ni numerales, ni símbolos especiales. Escribe como si hablaras en una conversación natural.`;
 
@@ -64,7 +90,7 @@ MUY IMPORTANTE: tus respuestas serán narradas por voz. Responde ÚNICAMENTE en 
         keep_alive: '30m',
         options: {
           num_predict: 512,
-          num_ctx: 2048
+          num_ctx: isUPSQuery ? 4096 : 2048
         }
       })
     });
@@ -133,4 +159,5 @@ app.listen(PORT, () => {
   console.log(`Frontend disponible en http://localhost:${PORT}`);
   console.log(`Conectado a Ollama en ${OLLAMA_URL}`);
   console.log(`Modelo por defecto: ${DEFAULT_MODEL}`);
+  scrapeUPS(); // carga inicial del contexto de la UPS (no bloqueante)
 });

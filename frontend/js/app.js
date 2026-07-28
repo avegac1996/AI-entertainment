@@ -446,3 +446,134 @@ async function sendMessage() {
   setStatus('Sistema en línea — Todos los módulos operativos');
   inputEl.focus();
 }
+
+/* ===== Red neuronal animada de fondo ===== */
+(function neuralNetwork() {
+  const canvas = document.getElementById('neuralCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  let W, H, nodes = [], pulses = [];
+  const NODE_COUNT = 55;
+  const MAX_DIST = 160;
+  const PULSE_SPEED = 2.2;
+  let thinking = false;
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initNodes() {
+    nodes = [];
+    for (let i = 0; i < NODE_COUNT; i++) {
+      nodes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        r: Math.random() * 1.8 + 0.8,
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function spawnPulse(from, to) {
+    pulses.push({ from, to, t: 0, speed: PULSE_SPEED / Math.hypot(to.x - from.x, to.y - from.y) });
+  }
+
+  function update() {
+    for (const n of nodes) {
+      n.x += n.vx;
+      n.y += n.vy;
+      n.pulse += 0.03;
+      if (n.x < 0 || n.x > W) n.vx *= -1;
+      if (n.y < 0 || n.y > H) n.vy *= -1;
+    }
+
+    // Pulses
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      pulses[i].t += pulses[i].speed * (thinking ? 2.5 : 1);
+      if (pulses[i].t >= 1) pulses.splice(i, 1);
+    }
+
+    // Spawn pulses aleatorios
+    if (Math.random() < (thinking ? 0.25 : 0.06) && nodes.length > 2) {
+      const a = nodes[Math.floor(Math.random() * nodes.length)];
+      for (const b of nodes) {
+        if (a === b) continue;
+        const d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (d < MAX_DIST) {
+          spawnPulse(a, b);
+          break;
+        }
+      }
+    }
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Conexiones
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < MAX_DIST) {
+          const alpha = (1 - dist / MAX_DIST) * (thinking ? 0.28 : 0.14);
+          ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Pulses (paquetes de datos viajando por las conexiones)
+    for (const p of pulses) {
+      const x = p.from.x + (p.to.x - p.from.x) * p.t;
+      const y = p.from.y + (p.to.y - p.from.y) * p.t;
+      const glow = thinking ? 6 : 4;
+      ctx.fillStyle = thinking ? 'rgba(120, 230, 255, 0.9)' : 'rgba(0, 212, 255, 0.7)';
+      ctx.shadowBlur = glow;
+      ctx.shadowColor = 'rgba(0, 212, 255, 0.8)';
+      ctx.beginPath();
+      ctx.arc(x, y, thinking ? 2.2 : 1.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // Nodos
+    for (const n of nodes) {
+      const breath = Math.sin(n.pulse) * 0.4 + 0.6;
+      const radius = n.r * (thinking ? 1.4 : 1) * breath;
+      ctx.fillStyle = thinking ? 'rgba(100, 220, 255, 0.85)' : 'rgba(0, 212, 255, 0.55)';
+      ctx.shadowBlur = thinking ? 8 : 5;
+      ctx.shadowColor = 'rgba(0, 212, 255, 0.6)';
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  // Observar el estado del reactor para reaccionar
+  const observer = new MutationObserver(() => {
+    thinking = reactor.classList.contains('thinking');
+  });
+  observer.observe(reactor, { attributes: true, attributeFilter: ['class'] });
+
+  window.addEventListener('resize', () => { resize(); initNodes(); });
+  resize();
+  initNodes();
+  loop();
+})();
