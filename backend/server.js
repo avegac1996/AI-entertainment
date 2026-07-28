@@ -34,7 +34,7 @@ app.get('/api/models', async (req, res) => {
   }
 });
 
-// Endpoint de chat
+// Endpoint de chat (streaming SSE)
 app.post('/api/chat', async (req, res) => {
   const { message, model = DEFAULT_MODEL } = req.body;
 
@@ -42,11 +42,11 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'El campo "message" es obligatorio y debe ser texto.' });
   }
 
-  const systemPrompt = `Eres un asistente de entretenimiento. SOLO puedes responder preguntas relacionadas con entretenimiento: cine, televisión, series, música, videojuegos, libros, deportes, celebridades, cultura pop, anime, manga, teatro, conciertos, streaming, etc.
+  const systemPrompt = `Eres JARVIS, un asistente de entretenimiento futurista. SOLO puedes responder preguntas sobre tres categorías: PELÍCULAS, LIBROS y VIDEOJUEGOS.
 
-Si el usuario hace una pregunta que NO está relacionada con el entretenimiento, debes rechazarla amablemente diciendo: "Lo siento, solo puedo responder preguntas sobre entretenimiento. ¿Te gustaría saber algo sobre cine, música, series, videojuegos u otro tema de entretenimiento?"
+Si el usuario pregunta sobre cualquier otro tema (música, series, deportes, política, ciencia, matemáticas, programación, finanzas, salud, cocina, etc.), debes rechazarla amablemente diciendo: "Lo siento, mi protocolo solo cubre películas, libros y videojuegos. ¿Sobre cuál de estos temas deseas consultar?"
 
-No respondas preguntas sobre política, ciencia, matemáticas, programación, finanzas, salud, cocina, historia (a menos que sea historia del entretenimiento), ni ningún otro tema que no sea entretenimiento.`;
+Responde siempre de forma concisa y con un tono sofisticado, como un mayordomo digital. Máximo 3 recomendaciones por respuesta.`;
 
   try {
     const response = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -58,7 +58,12 @@ No respondas preguntas sobre política, ciencia, matemáticas, programación, fi
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
-        stream: false
+        stream: true,
+        keep_alive: '30m',
+        options: {
+          num_predict: 512,
+          num_ctx: 2048
+        }
       })
     });
 
@@ -67,15 +72,57 @@ No respondas preguntas sobre política, ciencia, matemáticas, programación, fi
       throw new Error(`Ollama status ${response.status}: ${errorText}`);
     }
 
-    const data = await response.json();
-    const reply = data.message?.content || 'Sin respuesta del modelo.';
-    res.json({ reply, model });
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    req.on('close', () => {
+      reader.cancel().catch(() => {});
+    });
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const json = JSON.parse(trimmed);
+          const content = json.message?.content || '';
+          if (content) {
+            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+          }
+          if (json.done) {
+            res.write('data: [DONE]\n\n');
+          }
+        } catch {
+          // línea parcial, ignorar
+        }
+      }
+    }
+
+    res.end();
   } catch (error) {
     console.error('Error en /api/chat:', error.message);
-    res.status(502).json({
-      error: 'No se pudo obtener respuesta de Ollama.',
-      details: error.message
-    });
+    if (!res.headersSent) {
+      res.status(502).json({
+        error: 'No se pudo obtener respuesta de Ollama.',
+        details: error.message
+      });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+      res.end();
+    }
   }
 });
 
